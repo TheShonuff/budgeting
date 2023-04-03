@@ -3,6 +3,14 @@ import yaml
 import pandas as pd
 import argparse
 import datetime
+import gspread
+from gspread_pandas import Spread, Client
+
+# Setup Google Sheets
+gc = gspread.service_account()
+key = "1Qk1WQ2Jg7utH9aX8_GIt4ZOTeT_3cuO9xSHmns1cODg"
+# sheet = gc.open_by_key(key)
+spread = Spread(key)
 
 # Setup Argparse
 parser = argparse.ArgumentParser()
@@ -89,6 +97,9 @@ date_year = pd.to_datetime(Statement_DataFrame.iloc[0]["Date"]).year
 # Create Month and Year columns in Summary DataFrame
 month_summary["Month"] = date_month
 month_summary["Year"] = date_year
+
+# NOTE: Import Monthly Summary to Google Sheets
+# spread.df_to_sheet(month_summary, index=False, sheet="Summary", start="A1", replace=True)
 
 # TODO: Append monthly summary to yearly summaries csv
 
