@@ -16,9 +16,12 @@ spread = Spread(key)
 parser = argparse.ArgumentParser()
 # Setup argparse arguments
 parser.add_argument("file")
+parser.add_argument("-c", "--classify", action="store_true", required=False, help="Add classifications to transactions")
+parser.add_argument(
+    "-e", "--export", action="store_true", required=False, help="Exports to Google sheets and summaries"
+)
 args = parser.parse_args()
-print(args.file)
-
+print(f"Starting to process {args.file}")
 # Setup Export Path
 Export_Path = "~/Documents/financial/2023"
 
@@ -34,12 +37,6 @@ Statement_DataFrame["Classification"] = ""
 # Delete first row of Statement_DataFrame - no need to categorize "beginning balance"
 Statement_DataFrame = Statement_DataFrame.drop(Statement_DataFrame.index[0])
 
-# config['buckets']s: Education, Nicotine, Debt Payments, Medical, Food, Subscription, Transportation, Daycare
-# Amazon, Target, Wal-mart, Pets, Tools
-
-# Old method of importing YAML file
-# with open("buckets.yaml", "r") as bucket:
-#    buckets = yaml.safe_load(bucket)
 # Updated YAML import to include additional fields in the config file
 with open("config.yaml", "r") as config:
     config = yaml.safe_load(config)
@@ -104,11 +101,6 @@ Month_Summary = Month_Summary.drop([4, 12, 16]).reset_index(drop=True)
 total_expenses = Month_Summary["Amount"].sum()
 # Begin preparing Monthly Summary For export
 Month_Summary = Month_Summary.assign(Budgeted=0, Result=0, Month=date_month, Year=date_year)
-# Month_Summary["Budgeted"] = 0
-# Month_Summary["Result"] = 0
-# print(total_expenses)
-# print(Month_Summary)
-
 
 Condensed_Monthly_Summary = pd.DataFrame(
     {
@@ -128,20 +120,34 @@ for index, row in Month_Summary.iterrows():
     Month_Summary.loc[index, "Result"] = Month_Summary.loc[index, "Budgeted"] + Month_Summary.loc[index, "Amount"]
 
 Month_Summary.loc[len(Month_Summary.index)] = ["Total", total_expenses, 0, 0, date_month, date_year]
-print(Month_Summary)
 
-# NOTE: Import Monthly Summary to Google Sheets
-spread.df_to_sheet(Month_Summary, index=False, sheet="Summary", start="A1", replace=True)
-
-# TODO: Append monthly summary to yearly summaries csv
-# TODO export monthly condensed
 # Modify arg.file input to be used as an updated export file name
 export_summary_str = args.file.replace(".csv", "-summary.csv")
 export_str = args.file.replace(".csv", "-classified.csv")
+
+# TODO: Wrap exports in args.export conditional
+if args.export:
+    # NOTE: Import Monthly Summary to Google Sheets
+    spread.df_to_sheet(Month_Summary, index=False, sheet="Summary", start="A1", replace=True)
+    print(f"successfully updated {args.file} to Google Sheets")
+
+    # TODO: Create an export function to condense these blocks
+    Statement_DataFrame.to_csv(Export_Path + export_str, index=False)
+    Month_Summary.to_csv(Export_Path + export_summary_str, index=False)
+    Month_Summary.to_csv(export_summary_str, index=False)
+    Statement_DataFrame.to_csv(export_str, index=False)
+    print("successfully exported csv files")
+else:
+    # TODO: export monthly condensed
+
+    # Export CSV as updated monthly standalone file
+    Statement_DataFrame.to_csv(Export_Path + export_str, index=False)
+    Month_Summary.to_csv(Export_Path + export_summary_str, index=False)
+    Month_Summary.to_csv(export_summary_str, index=False)
+    Statement_DataFrame.to_csv(export_str, index=False)
+    print("successfully exported csv files")
+
+
 # TODO: Append Monthly Transactions to year transactions csv
 
-# Export CSV as updated monthly standalone file
-Statement_DataFrame.to_csv(Export_Path + export_str, index=False)
-Month_Summary.to_csv(Export_Path + export_summary_str, index=False)
-Month_Summary.to_csv(export_summary_str, index=False)
-Statement_DataFrame.to_csv(export_str, index=False)
+# TODO: Append monthly summary to yearly summaries csv
