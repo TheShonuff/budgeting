@@ -1,4 +1,5 @@
 import csv
+from os import path
 import yaml
 import pandas as pd
 import argparse
@@ -23,7 +24,33 @@ parser.add_argument(
 args = parser.parse_args()
 print(f"Starting to process {args.file}")
 # Setup Export Path
-Export_Path = "~/Documents/financial/2023"
+Export_Path = "~/Documents/financial/2023/"
+
+# Dates Dictionary for file export names
+dates = {
+    1: "Jan",
+    2: "Feb",
+    3: "Mar",
+    4: "Apr",
+    5: "May",
+    6: "Jun",
+    7: "Jul",
+    8: "Aug",
+    9: "Sept",
+    10: "Oct",
+    11: "Nov",
+    12: "Dec",
+}
+
+
+# Define Export function
+def export(date, dataframe, dataframe_summary):
+    date_format = dates.get(date)
+    export_summary_str = f"{date_format}-report.csv"
+    export_str = f"{date_format}-statement.csv"
+    dataframe.to_csv(Export_Path + export_str, index=False)
+    dataframe_summary.to_csv(Export_Path + export_summary_str, index=False)
+
 
 # Capture Body of CSV
 Statement_DataFrame = pd.read_csv(args.file, parse_dates=["Date"], skiprows=5, thousands=",")
@@ -36,6 +63,8 @@ Statement_DataFrame["Classification"] = ""
 
 # Delete first row of Statement_DataFrame - no need to categorize "beginning balance"
 Statement_DataFrame = Statement_DataFrame.drop(Statement_DataFrame.index[0])
+
+# TODO: SETUP XDG to safely move script to /bin/
 
 # Updated YAML import to include additional fields in the config file
 with open("config.yaml", "r") as config:
@@ -102,7 +131,7 @@ total_expenses = Month_Summary["Amount"].sum()
 # Begin preparing Monthly Summary For export
 Month_Summary = Month_Summary.assign(Budgeted=0, Result=0, Month=date_month, Year=date_year)
 
-Condensed_Monthly_Summary = pd.DataFrame(
+Monthly_Deposits_vs_Expenses = pd.DataFrame(
     {
         "Date": f"{date_month}/{date_year}",
         "Desposits": total_deposits,
@@ -111,7 +140,6 @@ Condensed_Monthly_Summary = pd.DataFrame(
     },
     index=[0],
 )
-print(Condensed_Monthly_Summary)
 
 # Insert Budgeted values from config yaml file
 for index, row in Month_Summary.iterrows():
@@ -121,33 +149,21 @@ for index, row in Month_Summary.iterrows():
 
 Month_Summary.loc[len(Month_Summary.index)] = ["Total", total_expenses, 0, 0, date_month, date_year]
 
-# Modify arg.file input to be used as an updated export file name
-export_summary_str = args.file.replace(".csv", "-summary.csv")
-export_str = args.file.replace(".csv", "-classified.csv")
+Monthly_Report = Monthly_Deposits_vs_Expenses.join(Month_Summary, how="right")
 
-# TODO: Wrap exports in args.export conditional
+# TODO: Create Year Summary xlsx file
+# Create 2023 Year DataFrame
+# TODO: Check if year_summary.csv exists in 2023 folder
+
+# Summary = "/Documents/financial/2023/Year-Summary.csv"
+# if os.path.isfile(Summary):
+
 if args.export:
     # NOTE: Import Monthly Summary to Google Sheets
-    spread.df_to_sheet(Month_Summary, index=False, sheet="Summary", start="A1", replace=True)
+    spread.df_to_sheet(Monthly_Report, index=False, sheet=f"{dates.get(date_month)}-Summary", start="A1", replace=True)
     print(f"successfully updated {args.file} to Google Sheets")
-
-    # TODO: Create an export function to condense these blocks
-    Statement_DataFrame.to_csv(Export_Path + export_str, index=False)
-    Month_Summary.to_csv(Export_Path + export_summary_str, index=False)
-    Month_Summary.to_csv(export_summary_str, index=False)
-    Statement_DataFrame.to_csv(export_str, index=False)
-    print("successfully exported csv files")
+    export(date_month, Statement_DataFrame, Monthly_Report)
+    print(f"Success! Exported csv data to {Export_Path}")
 else:
-    # TODO: export monthly condensed
-
-    # Export CSV as updated monthly standalone file
-    Statement_DataFrame.to_csv(Export_Path + export_str, index=False)
-    Month_Summary.to_csv(Export_Path + export_summary_str, index=False)
-    Month_Summary.to_csv(export_summary_str, index=False)
-    Statement_DataFrame.to_csv(export_str, index=False)
-    print("successfully exported csv files")
-
-
-# TODO: Append Monthly Transactions to year transactions csv
-
-# TODO: Append monthly summary to yearly summaries csv
+    export(date_month, Statement_DataFrame, Monthly_Report)
+    print(f"Success! Exported csv data to {Export_Path}")
