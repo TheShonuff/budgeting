@@ -10,9 +10,9 @@ gc = gspread.service_account()
 sh = gc.open("Application-Test")
 
 # Setup ArgParge to allow for custom file names
-# parser = argparse.ArgumentParser(description="Reads in a CSV file and appends it to a Google Sheet")
-# parser.add_argument("file")
-# args = parser.parse_args()
+parser = argparse.ArgumentParser(description="Reads in a CSV file and appends it to a Google Sheet")
+parser.add_argument("file")
+args = parser.parse_args()
 
 
 def convert_date(date):
@@ -41,9 +41,9 @@ Master_Record["Madison Contact - Denials"] = Master_Record["Madison Contact - De
 print(Master_Record["Approved?"].head())
 
 ## Read in downloaded Data
-new_applicants = pd.read_csv("foh-sample.csv", parse_dates=["Entry Date"], encoding="utf-8")
+# new_applicants = pd.read_csv("foh-sample.csv", parse_dates=["Entry Date"], encoding="utf-8")
 # Read in file from ArgumentParser
-# new_applicants = pd.read_csv(args.file, parse_dates=["Entry Date"])
+new_applicants = pd.read_csv(args.file, parse_dates=["Entry Date"])
 # Sanitze DataFrame
 new_applicants = new_applicants.drop(new_applicants.iloc[:, 17:38], axis=1)
 new_applicants = new_applicants.drop(new_applicants.columns[[0, 1, 2, 4, 5, 9, 14, 17, 19, 20, 22, 23]], axis=1)
