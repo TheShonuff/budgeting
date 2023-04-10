@@ -38,7 +38,6 @@ for index, row in Master_Record.iterrows():
 
 Master_Record["Approved?"] = Master_Record["Approved?"].astype(bool)
 Master_Record["Madison Contact - Denials"] = Master_Record["Madison Contact - Denials"].astype(bool)
-print(Master_Record["Approved?"].head())
 
 ## Read in downloaded Data
 # new_applicants = pd.read_csv("foh-sample.csv", parse_dates=["Entry Date"], encoding="utf-8")
