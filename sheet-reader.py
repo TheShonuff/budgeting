@@ -18,7 +18,6 @@ args = parser.parse_args()
 def convert_date(date):
     date = str(date)
     date = pd.Timestamp(date)
-    # date = date.strftime("%m-%d-%Y")
     return date
 
 
@@ -28,7 +27,7 @@ try:
 except gspread.WorksheetNotFound:
     worksheet = sh.add_worksheet(title=worksheet_title, rows=77, cols=16)
 
-
+print("Reading Values from Google Sheet...")
 Master_Record = get_as_dataframe(worksheet, na_value=" NaN", parse_dates=["Entry Date"], encoding="utf-8")
 for index, row in Master_Record.iterrows():
     if pd.isnull(Master_Record["Approved?"][index]):
@@ -36,12 +35,15 @@ for index, row in Master_Record.iterrows():
     elif pd.isnull(Master_Record["Madison Contact - Denials"][index]):
         Master_Record.loc[index, "Madison Contact - Denials"] = 0.0
 
+
 Master_Record["Approved?"] = Master_Record["Approved?"].astype(bool)
 Master_Record["Madison Contact - Denials"] = Master_Record["Madison Contact - Denials"].astype(bool)
 
 ## Read in downloaded Data
 # new_applicants = pd.read_csv("foh-sample.csv", parse_dates=["Entry Date"], encoding="utf-8")
+
 # Read in file from ArgumentParser
+print("Reading values from CSV ...")
 new_applicants = pd.read_csv(args.file, parse_dates=["Entry Date"])
 # Sanitze DataFrame
 new_applicants = new_applicants.drop(new_applicants.iloc[:, 17:38], axis=1)
@@ -57,4 +59,5 @@ Master_Record["Entry Date"] = Master_Record["Entry Date"].dt.strftime("%Y-%m-%d"
 Master_Record = Master_Record.drop_duplicates(subset=["Patient Name", "Entry Date"], keep="first")
 Master_Record = Master_Record.sort_values(by=["Entry Date"], ascending=False)
 
+print("Writing to Google Sheets")
 Master_Record = set_with_dataframe(worksheet, Master_Record, include_column_header=True)
